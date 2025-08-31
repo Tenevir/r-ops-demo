@@ -11,10 +11,7 @@ import { startMockApi } from './api';
 import { webSocketService } from './services';
 
 // Initialize mock API and WebSocket before rendering the app
-Promise.all([
-  startMockApi(),
-  webSocketService.connect()
-]).then(() => {
+const renderApp = () => {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <BrowserRouter>
@@ -30,4 +27,14 @@ Promise.all([
       </BrowserRouter>
     </StrictMode>
   );
-});
+};
+
+Promise.all([startMockApi(), webSocketService.connect()])
+  .then(() => {
+    renderApp();
+  })
+  .catch((error) => {
+    console.error('Failed to initialize services:', error);
+    // Render app anyway for demo purposes
+    renderApp();
+  });
