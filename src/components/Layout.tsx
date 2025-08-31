@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTheme } from '../theme/utils';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from './Button';
 
 interface LayoutProps extends HTMLAttributes<HTMLDivElement> {
@@ -16,6 +17,7 @@ interface LayoutProps extends HTMLAttributes<HTMLDivElement> {
 export const Layout = forwardRef<HTMLDivElement, LayoutProps>(
   ({ className, style, ...props }, ref) => {
     const theme = useTheme();
+    const { user, logout } = useAuth();
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -210,9 +212,21 @@ export const Layout = forwardRef<HTMLDivElement, LayoutProps>(
               Operations Dashboard
             </h1>
           </div>
-          <Button variant="ghost" size="sm">
-            Settings
-          </Button>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: theme.spacing[3] 
+          }}>
+            <div style={{ 
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary
+            }}>
+              {user?.name} ({user?.role})
+            </div>
+            <Button variant="ghost" size="sm" onClick={logout}>
+              Logout
+            </Button>
+          </div>
         </header>
 
         {/* Main Content Area */}

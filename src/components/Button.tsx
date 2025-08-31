@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { useTheme } from '../theme/utils';
 
 // Button variants
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'warning';
 export type ButtonSize = 'sm' | 'base' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -85,6 +85,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       danger: {
         backgroundColor: theme.colors.error,
         color: theme.colors.text,
+      },
+      warning: {
+        backgroundColor: '#f59e0b',
+        color: '#ffffff',
       },
     };
 

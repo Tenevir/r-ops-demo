@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Layout } from './components';
+import { Layout, LoginForm } from './components';
+import { useAuth } from './hooks/useAuth';
 import {
   AlertManagement,
   EventManagement,
@@ -8,6 +9,30 @@ import {
 } from './screens';
 
 function App() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.2rem',
+        color: '#ffffff'
+      }}>
+        🚨 Loading R-Ops...
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  // Show main app if authenticated
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
