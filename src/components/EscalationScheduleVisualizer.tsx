@@ -4,6 +4,7 @@ import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import type { Team, EscalationStep } from '../types';
 import { useTheme } from '../theme/utils';
 import { Button, Card, CardHeader, CardTitle, CardContent } from './';
+import { dataStore } from '../data';
 
 interface EscalationScheduleVisualizerProps {
   team: Team;
@@ -15,12 +16,21 @@ export const EscalationScheduleVisualizer: React.FC<EscalationScheduleVisualizer
   userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 }) => {
   const theme = useTheme();
-  const getTeamMembers = () => team.members;
+  const allUsers = dataStore.getUsers();
+  const allTeams = dataStore.getTeams();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedStep, setSelectedStep] = useState<EscalationStep | null>(null);
   const [showTimezoneComparison, setShowTimezoneComparison] = useState(false);
 
-  const teamMembers = getTeamMembers();
+  const getUserNameById = (userId: string): string => {
+    const user = allUsers.find(u => u.id === userId);
+    return user?.name || `Unknown User (${userId})`;
+  };
+
+  const getTeamNameById = (teamId: string): string => {
+    const targetTeam = allTeams.find(t => t.id === teamId);
+    return targetTeam?.name || `Unknown Team (${teamId})`;
+  };
 
   // Calculate escalation timeline
   const escalationTimeline = useMemo(() => {
@@ -38,12 +48,12 @@ export const EscalationScheduleVisualizer: React.FC<EscalationScheduleVisualizer
         endMinutes: cumulativeTime,
         duration: step.timeout,
         targetName: step.targetType === 'user' ? 
-          `User ${step.targetId}` :
-          `Team ${step.targetId}`,
+          getUserNameById(step.targetId) :
+          getTeamNameById(step.targetId),
         isLast: index === steps.length - 1
       };
     });
-  }, [team.escalationPolicy.steps, teamMembers]);
+  }, [team.escalationPolicy.steps, allUsers, allTeams]);
 
   const formatTimeInTimezone = (minutes: number, timezone: string): string => {
     try {
@@ -439,7 +449,7 @@ export const EscalationScheduleVisualizer: React.FC<EscalationScheduleVisualizer
         <div style={{
           marginTop: theme.spacing[4],
           padding: theme.spacing[3],
-          backgroundColor: '#f0f9ff',
+          backgroundColor: theme.colors.surfaceElevated,
           borderRadius: theme.borderRadius.md,
           border: `1px solid ${theme.colors.border}`,
         }}>

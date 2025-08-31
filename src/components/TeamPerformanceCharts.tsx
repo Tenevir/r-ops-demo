@@ -29,6 +29,7 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
   height = 300
 }) => {
   const theme = useTheme();
+  
   const getTeamMetrics = () => ({ 
     avgResponseTime: 4.2, 
     incidentCount: 12, 
@@ -43,8 +44,15 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
     activeContactMethods: 4
   });
 
+  const getTeamColor = (teamId: string): string => {
+    const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#6366f1'];
+    const index = teamId.charCodeAt(teamId.length - 1) % colors.length;
+    return colors[index];
+  };
+
   // Performance comparison data
   const performanceData = useMemo(() => {
+    if (!teams || teams.length === 0) return [];
     return teams.map(team => {
       const metrics = getTeamMetrics();
       return {
@@ -62,11 +70,12 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
 
   // Response time trend data (mock data for demonstration)
   const responseTrendData = useMemo(() => {
+    if (!teams || teams.length === 0) return [];
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days.map(day => ({
       day,
       ...teams.reduce((acc, team) => {
-        const baseTime = getTeamMetrics(team.id).averageResponseTime || 5;
+        const baseTime = getTeamMetrics().averageResponseTime || 5;
         acc[team.name] = baseTime + (Math.random() - 0.5) * 2; // ±1 minute variation
         return acc;
       }, {} as Record<string, number>)
@@ -75,6 +84,7 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
 
   // Alert distribution data
   const alertDistributionData = useMemo(() => {
+    if (!teams || teams.length === 0) return [];
     return teams.map(team => {
       const metrics = getTeamMetrics();
       return {
@@ -87,6 +97,7 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
 
   // Team size vs performance scatter data
   const teamEfficiencyData = useMemo(() => {
+    if (!teams || teams.length === 0) return [];
     return teams.map(team => {
       const metrics = getTeamMetrics();
       return {
@@ -98,13 +109,7 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
     });
   }, [teams]);
 
-  const getTeamColor = (teamId: string): string => {
-    const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#6366f1'];
-    const index = teamId.charCodeAt(teamId.length - 1) % colors.length;
-    return colors[index];
-  };
-
-  const CustomTooltip = ({ active, payload, label, percent }: any) => {
+  const CustomTooltip = ({ active, payload, label, percent }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string; percent?: number }) => {
     if (!active || !payload || !payload.length) return null;
 
     return (
@@ -123,7 +128,7 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
         }}>
           {label}
         </div>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: { name: string; value: number; color: string }, index: number) => (
           <div key={index} style={{
             color: entry.color,
             fontSize: theme.typography.fontSize.xs,
@@ -140,6 +145,41 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
   };
 
   const chartColors = teams.map(team => getTeamColor(team.id));
+
+  // If no teams, show empty state
+  if (!teams || teams.length === 0) {
+    return (
+      <Card variant="elevated">
+        <CardHeader>
+          <CardTitle>Team Performance Metrics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div style={{
+            textAlign: 'center',
+            padding: theme.spacing[8],
+            color: theme.colors.textMuted,
+          }}>
+            <div style={{
+              fontSize: theme.typography.fontSize.xl,
+              marginBottom: theme.spacing[2],
+            }}>
+              📊
+            </div>
+            <div style={{
+              fontSize: theme.typography.fontSize.lg,
+              fontWeight: theme.typography.fontWeight.medium,
+              marginBottom: theme.spacing[2],
+            }}>
+              No Team Data Available
+            </div>
+            <div>
+              Add teams to view performance metrics and analytics.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div style={{
@@ -234,7 +274,7 @@ export const TeamPerformanceCharts: React.FC<TeamPerformanceChartsProps> = ({
                 paddingAngle={2}
                 dataKey="value"
                 label={({ name, value, percent }) => 
-                  `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                  `${name}: ${value} (${((percent || 0) * 100).toFixed(0)}%)`
                 }
                 labelLine={false}
               >

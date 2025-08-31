@@ -18,9 +18,9 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
 }) => {
   const theme = useTheme();
   const getTeamMetrics = () => ({ avgResponseTime: 4.2, incidentCount: 12, uptime: 99.8, totalMembers: team?.members.length || 0, averageResponseTime: 4.2, resolutionRate: 92 });
-  const addContactMethod = async () => {};
-  const updateContactMethod = async () => {};
-  const removeContactMethod = async () => {};
+  const addContactMethod = async (_teamId: string, _contactData: any) => {};
+  const updateContactMethod = async (_teamId: string, _methodId: string, _updates: any) => {};
+  const removeContactMethod = async (_teamId: string, _methodId: string) => {};
   
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'escalation' | 'oncall' | 'contacts'>('overview');
   const [isAddingContact, setIsAddingContact] = useState(false);
@@ -31,7 +31,7 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
 
   const teamMembers = team?.members || [];
   const currentOnCall = team?.onCallSchedule.rotation.find(r => r.isActive);
-  const upcomingOnCall = team?.onCallSchedule.rotation.find((rotation, i, arr) => {
+  const upcomingOnCall = team?.onCallSchedule.rotation.find((_rotation, i, arr) => {
     const currentIndex = arr.findIndex(rot => rot.isActive);
     return i === (currentIndex + 1) % arr.length;
   });
@@ -64,10 +64,6 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
       case 'webhook': return '🔗';
       default: return '📞';
     }
-  };
-
-  const getInitials = (name: string): string => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleAddContact = async () => {
@@ -264,9 +260,9 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
                 alignItems: 'center',
                 gap: theme.spacing[2],
                 padding: theme.spacing[3],
-                backgroundColor: '#dcfce7',
+                backgroundColor: theme.colors.surfaceElevated,
                 borderRadius: theme.borderRadius.sm,
-                border: '1px solid #16a34a',
+                border: `2px solid ${theme.colors.success}`,
                 marginBottom: theme.spacing[2],
               }}>
                 <span>🟢</span>
@@ -297,7 +293,7 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
                 alignItems: 'center',
                 gap: theme.spacing[2],
                 padding: theme.spacing[3],
-                backgroundColor: '#f0f9ff',
+                backgroundColor: theme.colors.surfaceElevated,
                 borderRadius: theme.borderRadius.sm,
                 border: `1px solid ${theme.colors.border}`,
               }}>
@@ -515,8 +511,8 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
         return (
           <div key={rotation.id} style={{
             ...memberItemStyle,
-            backgroundColor: isCurrent ? '#dcfce7' : theme.colors.surface,
-            border: `1px solid ${isCurrent ? '#16a34a' : theme.colors.border}`,
+            backgroundColor: isCurrent ? theme.colors.surfaceElevated : theme.colors.surface,
+            border: `2px solid ${isCurrent ? theme.colors.success : theme.colors.border}`,
           }}>
             <div style={{
               ...avatarStyle,
@@ -626,8 +622,9 @@ export const TeamDetailsPanel: React.FC<TeamDetailsPanelProps> = ({
               borderRadius: theme.borderRadius.sm,
               fontSize: theme.typography.fontSize.xs,
               fontWeight: theme.typography.fontWeight.medium,
-              backgroundColor: method.isActive ? '#dcfce7' : '#fef3c7',
-              color: method.isActive ? '#16a34a' : '#f59e0b',
+              backgroundColor: method.isActive ? theme.colors.surfaceElevated : theme.colors.surface,
+              color: method.isActive ? theme.colors.success : theme.colors.warning,
+              border: `1px solid ${method.isActive ? theme.colors.success : theme.colors.warning}`,
             }}>
               {method.isActive ? 'Active' : 'Inactive'}
             </div>

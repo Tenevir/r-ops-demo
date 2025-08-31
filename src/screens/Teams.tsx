@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Card,
   CardHeader,
@@ -16,26 +16,80 @@ import {
 } from '../components';
 import { useTheme } from '../theme/utils';
 import type { Team, User } from '../types';
+import { dataStore } from '../data';
+
+interface TeamFilters {
+  search: string;
+  memberCount: 'all' | 'small' | 'medium' | 'large';
+  hasOnCall: boolean | null;
+  hasEscalation: boolean | null;
+}
 
 export const Teams = () => {
   const theme = useTheme();
-  const teams: Team[] = [];
+  const allTeams: Team[] = dataStore.getTeams();
+  const allUsers: User[] = dataStore.getUsers();
   const isLoading = false;
-  const selectedTeam: Team | null = null;
-  const setSelectedTeam = () => {};
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const [activeView, setActiveView] = useState<'directory' | 'schedules' | 'calendar' | 'performance' | 'communication'>('directory');
   const [announcement, setAnnouncement] = useState('');
   const [selectedTeamForTools, setSelectedTeamForTools] = useState<Team | null>(null);
   const [targetUser] = useState<User | null>(null);
+  const [filters, setFilters] = useState<TeamFilters>({
+    search: '',
+    memberCount: 'all',
+    hasOnCall: null,
+    hasEscalation: null,
+  });
 
-  const handleShowDetails = () => {
+  // Filter teams based on current filters
+  const filteredTeams = useMemo(() => {
+    return allTeams.filter(team => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const teamMatches = team.name.toLowerCase().includes(searchLower) ||
+                          team.description.toLowerCase().includes(searchLower);
+        const memberMatches = team.members.some(member => {
+          const user = allUsers.find(u => u.id === member.userId);
+          return user?.name.toLowerCase().includes(searchLower) ||
+                 user?.email.toLowerCase().includes(searchLower);
+        });
+        if (!teamMatches && !memberMatches) return false;
+      }
+
+      // Member count filter
+      if (filters.memberCount !== 'all') {
+        const memberCount = team.members.length;
+        if (filters.memberCount === 'small' && memberCount > 3) return false;
+        if (filters.memberCount === 'medium' && (memberCount <= 3 || memberCount > 8)) return false;
+        if (filters.memberCount === 'large' && memberCount <= 8) return false;
+      }
+
+      // On-call filter
+      if (filters.hasOnCall === true) {
+        const hasActiveOnCall = team.onCallSchedule.rotation.some(r => r.isActive);
+        if (!hasActiveOnCall) return false;
+      }
+
+      // Escalation filter
+      if (filters.hasEscalation === true) {
+        if (team.escalationPolicy.steps.length === 0) return false;
+      }
+
+      return true;
+    });
+  }, [allTeams, allUsers, filters]);
+
+  const handleShowDetails = (team: Team) => {
+    setSelectedTeam(team);
     setShowDetailsPanel(true);
   };
 
   const handleCloseDetails = () => {
     setShowDetailsPanel(false);
-    setSelectedTeam();
+    setSelectedTeam(null);
   };
 
   const handleEditTeam = () => {
@@ -107,8 +161,12 @@ export const Teams = () => {
       case 'directory':
         return (
           <>
-            <TeamFilter />
-            {teams.length === 0 ? (
+            <TeamFilter 
+              teams={allTeams}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
+            {filteredTeams.length === 0 ? (
               <div style={emptyStateStyle}>
                 <div style={{
                   fontSize: theme.typography.fontSize.xl,
@@ -121,19 +179,19 @@ export const Teams = () => {
                   fontWeight: theme.typography.fontWeight.medium,
                   marginBottom: theme.spacing[2],
                 }}>
-                  No Teams Found
+                  {allTeams.length === 0 ? 'No Teams Available' : 'No Teams Found'}
                 </div>
                 <div>
-                  Try adjusting your filters to see more teams.
+                  {allTeams.length === 0 ? 'Create your first team to get started.' : 'Try adjusting your filters to see more teams.'}
                 </div>
               </div>
             ) : (
               <div style={gridStyle}>
-                {teams.map((team) => (
+                {filteredTeams.map((team) => (
                   <TeamCard
                     key={team.id}
                     team={team}
-                    onShowDetails={handleShowDetails}
+                    onShowDetails={() => handleShowDetails(team)}
                     onEditTeam={handleEditTeam}
                   />
                 ))}
@@ -145,7 +203,7 @@ export const Teams = () => {
       case 'schedules':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {teams.map((team) => (
+            {filteredTeams.map((team) => (
               <EscalationScheduleVisualizer
                 key={team.id}
                 team={team}
@@ -157,7 +215,7 @@ export const Teams = () => {
       case 'calendar':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {teams.map((team) => (
+            {filteredTeams.map((team) => (
               <OnCallCalendar
                 key={team.id}
                 team={team}
@@ -168,7 +226,7 @@ export const Teams = () => {
         );
 
       case 'performance':
-        return <TeamPerformanceCharts teams={teams} />;
+        return <TeamPerformanceCharts teams={filteredTeams} />;
 
       case 'communication':
         return (
@@ -184,7 +242,7 @@ export const Teams = () => {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                     gap: theme.spacing[3],
                   }}>
-                    {teams.map((team) => (
+                    {filteredTeams.map((team) => (
                       <Button
                         key={team.id}
                         variant="ghost"
@@ -206,7 +264,7 @@ export const Teams = () => {
                           fontSize: theme.typography.fontSize.xs,
                           color: theme.colors.textMuted,
                         }}>
-                          {team.contactMethods.filter((m: any) => m.isActive).length} active channels
+                          {team.contactMethods.filter((m) => m.isActive).length} active channels
                         </div>
                       </Button>
                     ))}

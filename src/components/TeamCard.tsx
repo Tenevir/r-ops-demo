@@ -1,7 +1,8 @@
 import React from 'react';
-import type { Team } from '../types';
+import type { Team, User } from '../types';
 import { useTheme } from '../theme/utils';
 import { Button, Card, CardHeader, CardTitle, CardContent } from './';
+import { dataStore } from '../data';
 
 interface TeamCardProps {
   team: Team;
@@ -15,9 +16,14 @@ export const TeamCard: React.FC<TeamCardProps> = ({
   onEditTeam
 }) => {
   const theme = useTheme();
+  const users = dataStore.getUsers();
   const teamMembers = team.members;
   const currentOnCall = team.onCallSchedule.rotation.find(r => r.isActive);
-  const upcomingOnCall = team.onCallSchedule.rotation.find((rotation, i, arr) => {
+  
+  const getUserById = (userId: string): User | undefined => {
+    return users.find(user => user.id === userId);
+  };
+  const upcomingOnCall = team.onCallSchedule.rotation.find((_rotation, i, arr) => {
     const currentIndex = arr.findIndex(rot => rot.isActive);
     return i === (currentIndex + 1) % arr.length;
   });
@@ -131,9 +137,9 @@ export const TeamCard: React.FC<TeamCardProps> = ({
     alignItems: 'center',
     gap: theme.spacing[1],
     padding: theme.spacing[2],
-    backgroundColor: currentOnCall ? '#dcfce7' : '#fef3c7',
+    backgroundColor: currentOnCall ? theme.colors.surfaceElevated : theme.colors.surface,
     borderRadius: theme.borderRadius.sm,
-    border: `1px solid ${currentOnCall ? '#16a34a' : '#f59e0b'}`,
+    border: `2px solid ${currentOnCall ? theme.colors.success : theme.colors.warning}`,
     fontSize: theme.typography.fontSize.sm,
   };
 
@@ -200,7 +206,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
             <span>{currentOnCall ? '🟢' : '🟡'}</span>
             <span>
               {currentOnCall 
-                ? `${currentOnCall.name} is currently on call`
+                ? `${getUserById(currentOnCall.userId)?.name || 'Unknown User'} is currently on call`
                 : 'No one currently on call'
               }
             </span>
@@ -208,12 +214,12 @@ export const TeamCard: React.FC<TeamCardProps> = ({
           {upcomingOnCall && (
             <div style={{
               ...onCallIndicatorStyle,
-              backgroundColor: '#f0f9ff',
-              border: `1px solid ${theme.colors.border}`,
+              backgroundColor: theme.colors.surface,
+              border: `2px solid ${theme.colors.info}`,
               marginTop: theme.spacing[2],
             }}>
               <span>📅</span>
-              <span>Next: {upcomingOnCall.name}</span>
+              <span>Next: {getUserById(upcomingOnCall.userId)?.name || 'Unknown User'}</span>
             </div>
           )}
         </div>
@@ -222,12 +228,14 @@ export const TeamCard: React.FC<TeamCardProps> = ({
         <div style={sectionStyle}>
           <div style={sectionTitleStyle}>Team Members ({teamMembers.length})</div>
           <div style={memberListStyle}>
-            {teamMembers.slice(0, 3).map((member: any) => {
-              const teamMember = team.members.find(m => m.userId === member.id);
+            {teamMembers.slice(0, 3).map((teamMember) => {
+              const user = getUserById(teamMember.userId);
+              if (!user) return null;
+              
               return (
-                <div key={member.id} style={memberItemStyle}>
+                <div key={teamMember.userId} style={memberItemStyle}>
                   <div style={avatarStyle}>
-                    {getInitials(member.name)}
+                    {getInitials(user.name)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ 
@@ -235,20 +243,18 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                       color: theme.colors.text,
                       fontSize: theme.typography.fontSize.sm,
                     }}>
-                      {member.name}
+                      {user.name}
                     </div>
                     <div style={{
                       fontSize: theme.typography.fontSize.xs,
                       color: theme.colors.textMuted,
                     }}>
-                      {member.email}
+                      {user.email}
                     </div>
                   </div>
-                  {teamMember && (
-                    <div style={roleStyle(teamMember.role)}>
-                      {teamMember.role}
-                    </div>
-                  )}
+                  <div style={roleStyle(teamMember.role)}>
+                    {teamMember.role}
+                  </div>
                 </div>
               );
             })}

@@ -1,14 +1,41 @@
 import React, { useRef } from 'react';
 import { useTheme } from '../theme/utils';
 import { Button, Toolbar, ToolbarGroup } from './';
+import type { Team } from '../types';
 
-export const TeamFilter: React.FC = () => {
+interface TeamFilters {
+  search: string;
+  memberCount: 'all' | 'small' | 'medium' | 'large';
+  hasOnCall: boolean | null;
+  hasEscalation: boolean | null;
+}
+
+interface TeamFilterProps {
+  teams: Team[];
+  filters: TeamFilters;
+  onFiltersChange: (filters: TeamFilters) => void;
+}
+
+export const TeamFilter: React.FC<TeamFilterProps> = ({ 
+  teams, 
+  filters, 
+  onFiltersChange 
+}) => {
   const theme = useTheme();
-  const filters = { search: '', memberCount: 'all', hasOnCall: null, hasEscalation: null };
-  const setFilters = () => {};
-  const clearFilters = () => {};
-  const teams: any[] = [];
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const setFilters = (updates: Partial<TeamFilters>) => {
+    onFiltersChange({ ...filters, ...updates });
+  };
+  
+  const clearFilters = () => {
+    onFiltersChange({
+      search: '',
+      memberCount: 'all',
+      hasOnCall: null,
+      hasEscalation: null,
+    });
+  };
 
   const handleSearchChange = (value: string) => {
     if (searchTimeoutRef.current) {
@@ -87,6 +114,7 @@ export const TeamFilter: React.FC = () => {
             type="text"
             placeholder="Search by name, description, or member..."
             style={searchStyle}
+            value={filters.search}
             onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={(e) => {
               e.target.style.borderColor = theme.colors.primary;

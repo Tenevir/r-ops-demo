@@ -14,6 +14,7 @@ import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import type { Team, User } from '../types';
 import { useTheme } from '../theme/utils';
 import { Button, Card, CardHeader, CardTitle, CardContent } from './';
+import { dataStore } from '../data';
 
 interface OnCallCalendarProps {
   team: Team;
@@ -36,12 +37,19 @@ export const OnCallCalendar: React.FC<OnCallCalendarProps> = ({
   onHandoffNotification
 }) => {
   const theme = useTheme();
-  const getTeamMembers = () => team.members;
+  const allUsers = dataStore.getUsers();
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
-  const teamMembers = getTeamMembers();
+  const getUserNameById = (userId: string): string => {
+    const user = allUsers.find(u => u.id === userId);
+    return user?.name || `Unknown User (${userId})`;
+  };
+
+  const getUserById = (userId: string): User | undefined => {
+    return allUsers.find(u => u.id === userId);
+  };
   
   // Convert rotation periods to calendar events
   const calendarEvents = useMemo((): CalendarEvent[] => {
@@ -57,7 +65,7 @@ export const OnCallCalendar: React.FC<OnCallCalendarProps> = ({
       return {
         id: rotation.id,
         userId: rotation.userId,
-        userName: `User ${rotation.userId}`,
+        userName: getUserNameById(rotation.userId),
         startTime,
         endTime,
         isActive: rotation.isActive,
@@ -65,7 +73,7 @@ export const OnCallCalendar: React.FC<OnCallCalendarProps> = ({
         isUpcoming,
       };
     });
-  }, [team.onCallSchedule.rotation, teamMembers, team.onCallSchedule.timezone]);
+  }, [team.onCallSchedule.rotation, allUsers, team.onCallSchedule.timezone, getUserNameById]);
 
   // Generate calendar grid
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 }); // Monday start
@@ -134,10 +142,10 @@ export const OnCallCalendar: React.FC<OnCallCalendarProps> = ({
     return {
       padding: theme.spacing[2],
       borderRadius: theme.borderRadius.sm,
-      border: `1px solid ${theme.colors.border}`,
       backgroundColor: isToday ? 
-        (hasCurrentEvent ? '#dcfce7' : '#f0f9ff') : 
+        (hasCurrentEvent ? theme.colors.surfaceElevated : theme.colors.surfaceElevated) : 
         theme.colors.surface,
+      border: isToday ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
       minHeight: '120px',
       cursor: 'pointer',
       transition: `all ${theme.animation.duration.fast}`,
@@ -440,10 +448,11 @@ export const OnCallCalendar: React.FC<OnCallCalendarProps> = ({
                         variant="secondary"
                         size="sm"
                         onClick={() => {
-                          const fromUser = teamMembers.find((u: any) => u.userId === calendarEvents.find((e: any) => e.isCurrent)?.userId);
-                          const toUser = teamMembers.find((u: any) => u.userId === event.userId);
+                          const currentEvent = calendarEvents.find(e => e.isCurrent);
+                          const fromUser = currentEvent ? getUserById(currentEvent.userId) : undefined;
+                          const toUser = getUserById(event.userId);
                           if (fromUser && toUser && onHandoffNotification) {
-                            onHandoffNotification(fromUser as any, toUser as any, event.startTime);
+                            onHandoffNotification(fromUser, toUser, event.startTime);
                           }
                         }}
                       >
