@@ -136,7 +136,7 @@ export const AlertManagement = () => {
 
   const gridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+    gridTemplateColumns: '1fr',
     gap: theme.spacing[4],
     marginBottom: theme.spacing[8],
   };
