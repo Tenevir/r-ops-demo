@@ -9,30 +9,36 @@ import {
 } from './screens';
 
 function App() {
+  // Skip authentication for demo deployment
+  const isDemoMode =
+    process.env.NODE_ENV === 'production' ||
+    window.location.hostname !== 'localhost';
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  // Show loading spinner while checking authentication (only in local dev)
+  if (!isDemoMode && isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontSize: '1.2rem',
-        color: '#ffffff'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '1.2rem',
+          color: '#ffffff',
+        }}
+      >
         🚨 Loading R-Ops...
       </div>
     );
   }
 
-  // Show login form if not authenticated
-  if (!isAuthenticated) {
+  // Show login form only in local development when not authenticated
+  if (!isDemoMode && !isAuthenticated) {
     return <LoginForm />;
   }
 
-  // Show main app if authenticated
+  // Show main app (always for demo mode, or when authenticated in dev)
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
