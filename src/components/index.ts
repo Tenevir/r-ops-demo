@@ -15,3 +15,4 @@ export {
   type ToolbarVariant,
   type ToolbarSize,
 } from './Toolbar';
+export { Layout } from './Layout';
