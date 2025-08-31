@@ -38,3 +38,7 @@ export { RuleTestPanel } from './RuleTestPanel';
 export { RuleAnalytics } from './RuleAnalytics';
 export { RuleTemplateLibrary } from './RuleTemplateLibrary';
 export { RuleList } from './RuleList';
+export { RuleAuditHistory } from './RuleAuditHistory';
+export { RulePerformanceMetrics } from './RulePerformanceMetrics';
+export { ABTestManager } from './ABTestManager';
+export { AlertRuleLinkage } from './AlertRuleLinkage';

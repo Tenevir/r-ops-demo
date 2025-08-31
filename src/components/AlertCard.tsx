@@ -3,19 +3,22 @@ import type { Alert } from '../types';
 import { useTheme } from '../theme/utils';
 import { useAlerts } from '../hooks/useAlerts';
 import { Button, Card, CardHeader, CardTitle, CardContent } from './';
+import { dataStore } from '../data';
 
 interface AlertCardProps {
   alert: Alert;
   isSelected?: boolean;
   onSelect?: (id: string) => void;
   showBulkSelect?: boolean;
+  onNavigateToRule?: (ruleId: string) => void;
 }
 
-export const AlertCard: React.FC<AlertCardProps> = ({ 
-  alert, 
-  isSelected = false, 
+export const AlertCard: React.FC<AlertCardProps> = ({
+  alert,
+  isSelected = false,
   onSelect,
-  showBulkSelect = false 
+  showBulkSelect = false,
+  onNavigateToRule,
 }) => {
   const theme = useTheme();
   const { acknowledgeAlert, resolveAlert, escalateAlert } = useAlerts();
@@ -23,20 +26,29 @@ export const AlertCard: React.FC<AlertCardProps> = ({
 
   const getSeverityColor = (severity: Alert['severity']): string => {
     switch (severity) {
-      case 'critical': return '#ef4444';
-      case 'warning': return theme.colors.primary;
-      case 'info': return '#10b981';
-      case 'low': return '#6b7280';
-      default: return theme.colors.textMuted;
+      case 'critical':
+        return '#ef4444';
+      case 'warning':
+        return theme.colors.primary;
+      case 'info':
+        return '#10b981';
+      case 'low':
+        return '#6b7280';
+      default:
+        return theme.colors.textMuted;
     }
   };
 
   const getStatusColor = (status: Alert['status']): string => {
     switch (status) {
-      case 'active': return '#ef4444';
-      case 'acknowledged': return theme.colors.primary;
-      case 'resolved': return '#10b981';
-      default: return theme.colors.textMuted;
+      case 'active':
+        return '#ef4444';
+      case 'acknowledged':
+        return theme.colors.primary;
+      case 'resolved':
+        return '#10b981';
+      default:
+        return theme.colors.textMuted;
     }
   };
 
@@ -49,12 +61,16 @@ export const AlertCard: React.FC<AlertCardProps> = ({
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffMins < 60)
+      return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
-  const handleAction = async (action: 'acknowledge' | 'resolve' | 'escalate') => {
+  const handleAction = async (
+    action: 'acknowledge' | 'resolve' | 'escalate'
+  ) => {
     setIsProcessing(action);
     try {
       switch (action) {
@@ -149,19 +165,25 @@ export const AlertCard: React.FC<AlertCardProps> = ({
   const shouldShowActions = alert.status !== 'resolved';
 
   return (
-    <Card 
-      variant="elevated" 
+    <Card
+      variant="elevated"
       hover={showBulkSelect}
       style={cardStyle}
-      onClick={showBulkSelect && onSelect ? () => onSelect(alert.id) : undefined}
+      onClick={
+        showBulkSelect && onSelect ? () => onSelect(alert.id) : undefined
+      }
       role={showBulkSelect ? 'button' : undefined}
       tabIndex={showBulkSelect ? 0 : undefined}
-      onKeyDown={showBulkSelect && onSelect ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(alert.id);
-        }
-      } : undefined}
+      onKeyDown={
+        showBulkSelect && onSelect
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(alert.id);
+              }
+            }
+          : undefined
+      }
       aria-label={showBulkSelect ? `Select alert: ${alert.title}` : undefined}
     >
       <CardHeader>
@@ -180,15 +202,11 @@ export const AlertCard: React.FC<AlertCardProps> = ({
               />
             )}
             <div style={statusIndicatorStyle} aria-hidden="true" />
-            <CardTitle style={{ margin: 0, flex: 1 }}>
-              {alert.title}
-            </CardTitle>
+            <CardTitle style={{ margin: 0, flex: 1 }}>{alert.title}</CardTitle>
           </div>
-          <div style={statusBadgeStyle}>
-            {alert.status}
-          </div>
+          <div style={statusBadgeStyle}>{alert.status}</div>
         </div>
-        
+
         <div style={metadataStyle}>
           <span>Severity: {alert.severity}</span>
           <span aria-hidden="true">•</span>
@@ -203,33 +221,37 @@ export const AlertCard: React.FC<AlertCardProps> = ({
       </CardHeader>
 
       <CardContent>
-        <p style={descriptionStyle}>
-          {alert.description}
-        </p>
+        <p style={descriptionStyle}>{alert.description}</p>
 
         {alert.metadata && Object.keys(alert.metadata).length > 0 && (
-          <div style={{
-            marginBottom: theme.spacing[4],
-            padding: theme.spacing[3],
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.md,
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.text,
-              marginBottom: theme.spacing[2],
-            }}>
+          <div
+            style={{
+              marginBottom: theme.spacing[4],
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <div
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.text,
+                marginBottom: theme.spacing[2],
+              }}
+            >
               Additional Details:
             </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-              gap: theme.spacing[2],
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-            }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: theme.spacing[2],
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
               {Object.entries(alert.metadata).map(([key, value]) => (
                 <div key={key}>
                   <strong>{key}:</strong> {String(value)}
@@ -252,10 +274,12 @@ export const AlertCard: React.FC<AlertCardProps> = ({
                 loading={isProcessing === 'acknowledge'}
                 disabled={!!isProcessing}
               >
-                {isProcessing === 'acknowledge' ? 'Acknowledging...' : 'Acknowledge'}
+                {isProcessing === 'acknowledge'
+                  ? 'Acknowledging...'
+                  : 'Acknowledge'}
               </Button>
             )}
-            
+
             {(alert.status === 'active' || alert.status === 'acknowledged') && (
               <Button
                 variant="primary"
@@ -270,7 +294,7 @@ export const AlertCard: React.FC<AlertCardProps> = ({
                 {isProcessing === 'resolve' ? 'Resolving...' : 'Resolve'}
               </Button>
             )}
-            
+
             {alert.severity !== 'critical' && alert.status === 'active' && (
               <Button
                 variant="warning"
@@ -288,32 +312,108 @@ export const AlertCard: React.FC<AlertCardProps> = ({
           </div>
         )}
 
+        {/* Rule Navigation Section */}
+        {alert.triggeredByRule && (
+          <div
+            style={{
+              marginTop: theme.spacing[4],
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: theme.spacing[3],
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.medium,
+                    color: theme.colors.text,
+                    marginBottom: theme.spacing[1],
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                  }}
+                >
+                  <span>📋</span>
+                  <span>Triggered by Rule</span>
+                </div>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textMuted,
+                  }}
+                >
+                  {(() => {
+                    const rule = dataStore.getRuleById(alert.triggeredByRule);
+                    return rule
+                      ? rule.name
+                      : `Rule ID: ${alert.triggeredByRule}`;
+                  })()}
+                </div>
+              </div>
+              {onNavigateToRule && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigateToRule(alert.triggeredByRule!);
+                  }}
+                >
+                  View Rule →
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {alert.status === 'resolved' && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            fontSize: theme.typography.fontSize.sm,
-            color: '#10b981',
-            fontWeight: theme.typography.fontWeight.medium,
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+              fontSize: theme.typography.fontSize.sm,
+              color: '#10b981',
+              fontWeight: theme.typography.fontWeight.medium,
+            }}
+          >
             <span>✓</span>
-            <span>Resolved {alert.resolvedAt ? formatTimestamp(alert.resolvedAt) : ''}</span>
+            <span>
+              Resolved{' '}
+              {alert.resolvedAt ? formatTimestamp(alert.resolvedAt) : ''}
+            </span>
             {alert.resolvedBy && <span>by {alert.resolvedBy}</span>}
           </div>
         )}
 
         {alert.status === 'acknowledged' && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.primary,
-            fontWeight: theme.typography.fontWeight.medium,
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.primary,
+              fontWeight: theme.typography.fontWeight.medium,
+            }}
+          >
             <span>👀</span>
-            <span>Acknowledged {alert.acknowledgedAt ? formatTimestamp(alert.acknowledgedAt) : ''}</span>
+            <span>
+              Acknowledged{' '}
+              {alert.acknowledgedAt
+                ? formatTimestamp(alert.acknowledgedAt)
+                : ''}
+            </span>
             {alert.acknowledgedBy && <span>by {alert.acknowledgedBy}</span>}
           </div>
         )}

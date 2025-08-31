@@ -6,6 +6,10 @@ import {
   RuleAnalytics,
   RuleTemplateLibrary,
   RuleList,
+  RuleAuditHistory,
+  RulePerformanceMetrics,
+  ABTestManager,
+  AlertRuleLinkage,
   ScreenReaderAnnouncement,
 } from '../components';
 import { useTheme } from '../theme/utils';
@@ -27,7 +31,17 @@ export const RulesEngine = () => {
   const theme = useTheme();
   const [rules, setRules] = useState<Rule[]>(() => dataStore.getRules());
   const [selectedRule, setSelectedRule] = useState<Rule | null>(null);
-  const [activeView, setActiveView] = useState<'list' | 'builder' | 'testing' | 'analytics' | 'templates'>('list');
+  const [activeView, setActiveView] = useState<
+    | 'list'
+    | 'builder'
+    | 'testing'
+    | 'analytics'
+    | 'templates'
+    | 'audit'
+    | 'performance'
+    | 'abtest'
+    | 'linkage'
+  >('list');
   const [announcement, setAnnouncement] = useState('');
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
 
@@ -81,6 +95,9 @@ export const RulesEngine = () => {
         alertsCreated: 0,
         averageExecutionTime: 0,
         successRate: 100,
+        evaluationCount: 0,
+        falsePosiveRate: 0,
+        performanceImpactScore: 100,
       },
     };
 
@@ -98,17 +115,19 @@ export const RulesEngine = () => {
   const handleSaveRule = useCallback(() => {
     if (!editingRule) return;
 
-    if (rules.some(r => r.id === editingRule.id)) {
+    if (rules.some((r) => r.id === editingRule.id)) {
       // Update existing rule
       const updatedRule = dataStore.updateRule(editingRule.id, editingRule);
       if (updatedRule) {
-        setRules(prev => prev.map(r => r.id === editingRule.id ? updatedRule : r));
+        setRules((prev) =>
+          prev.map((r) => (r.id === editingRule.id ? updatedRule : r))
+        );
         setAnnouncement(`Rule "${editingRule.name}" updated successfully`);
       }
     } else {
       // Create new rule
       const newRule = dataStore.createRule(editingRule);
-      setRules(prev => [...prev, newRule]);
+      setRules((prev) => [...prev, newRule]);
       setAnnouncement(`Rule "${editingRule.name}" created successfully`);
     }
 
@@ -121,30 +140,38 @@ export const RulesEngine = () => {
     setActiveView('list');
   }, []);
 
-  const handleDeleteRule = useCallback((ruleId: string) => {
-    if (window.confirm('Are you sure you want to delete this rule?')) {
-      const success = dataStore.deleteRule(ruleId);
-      if (success) {
-        setRules(prev => prev.filter(r => r.id !== ruleId));
-        setAnnouncement('Rule deleted successfully');
-        if (selectedRule?.id === ruleId) {
-          setSelectedRule(null);
+  const handleDeleteRule = useCallback(
+    (ruleId: string) => {
+      if (window.confirm('Are you sure you want to delete this rule?')) {
+        const success = dataStore.deleteRule(ruleId);
+        if (success) {
+          setRules((prev) => prev.filter((r) => r.id !== ruleId));
+          setAnnouncement('Rule deleted successfully');
+          if (selectedRule?.id === ruleId) {
+            setSelectedRule(null);
+          }
         }
       }
-    }
-  }, [selectedRule]);
+    },
+    [selectedRule]
+  );
 
-  const handleToggleRule = useCallback((ruleId: string) => {
-    const rule = rules.find(r => r.id === ruleId);
-    if (rule) {
-      const updatedRule = { ...rule, isActive: !rule.isActive };
-      const result = dataStore.updateRule(ruleId, updatedRule);
-      if (result) {
-        setRules(prev => prev.map(r => r.id === ruleId ? result : r));
-        setAnnouncement(`Rule "${rule.name}" ${result.isActive ? 'activated' : 'deactivated'}`);
+  const handleToggleRule = useCallback(
+    (ruleId: string) => {
+      const rule = rules.find((r) => r.id === ruleId);
+      if (rule) {
+        const updatedRule = { ...rule, isActive: !rule.isActive };
+        const result = dataStore.updateRule(ruleId, updatedRule);
+        if (result) {
+          setRules((prev) => prev.map((r) => (r.id === ruleId ? result : r)));
+          setAnnouncement(
+            `Rule "${rule.name}" ${result.isActive ? 'activated' : 'deactivated'}`
+          );
+        }
       }
-    }
-  }, [rules]);
+    },
+    [rules]
+  );
 
   const handleApplyTemplate = useCallback((template: RuleTemplate) => {
     const newRule: Rule = {
@@ -171,6 +198,9 @@ export const RulesEngine = () => {
         alertsCreated: 0,
         averageExecutionTime: 0,
         successRate: 100,
+        evaluationCount: 0,
+        falsePosiveRate: 0,
+        performanceImpactScore: 100,
       },
     };
 
@@ -184,9 +214,32 @@ export const RulesEngine = () => {
     setAnnouncement(`Preview: ${template.name} - ${template.description}`);
   }, []);
 
-  const handleTestResult = useCallback((passed: boolean, details: { conditionResults: Array<{ condition: string; passed: boolean; actualValue: string | number | boolean; expectedValue: string | number | boolean }>; actionsExecuted: string[]; executionTime: number }) => {
-    setAnnouncement(`Rule test ${passed ? 'passed' : 'failed'} - execution took ${details.executionTime}ms`);
+  const handleNavigateToAlert = useCallback((alertId: string) => {
+    // In a real app, this would navigate to the alert screen
+    console.log('Navigate to alert:', alertId);
+    setAnnouncement(`Navigating to alert: ${alertId}`);
   }, []);
+
+  const handleTestResult = useCallback(
+    (
+      passed: boolean,
+      details: {
+        conditionResults: Array<{
+          condition: string;
+          passed: boolean;
+          actualValue: string | number | boolean;
+          expectedValue: string | number | boolean;
+        }>;
+        actionsExecuted: string[];
+        executionTime: number;
+      }
+    ) => {
+      setAnnouncement(
+        `Rule test ${passed ? 'passed' : 'failed'} - execution took ${details.executionTime}ms`
+      );
+    },
+    []
+  );
 
   const renderView = () => {
     switch (activeView) {
@@ -202,10 +255,7 @@ export const RulesEngine = () => {
 
       case 'testing':
         return (
-          <RuleTestPanel
-            rule={selectedRule}
-            onTestResult={handleTestResult}
-          />
+          <RuleTestPanel rule={selectedRule} onTestResult={handleTestResult} />
         );
 
       case 'analytics':
@@ -216,6 +266,37 @@ export const RulesEngine = () => {
           <RuleTemplateLibrary
             onApplyTemplate={handleApplyTemplate}
             onPreviewTemplate={handlePreviewTemplate}
+          />
+        );
+
+      case 'audit':
+        return <RuleAuditHistory rule={selectedRule} />;
+
+      case 'performance':
+        return (
+          <RulePerformanceMetrics rules={rules} selectedRule={selectedRule} />
+        );
+
+      case 'abtest':
+        return <ABTestManager rules={rules} selectedRule={selectedRule} />;
+
+      case 'linkage':
+        return (
+          <AlertRuleLinkage
+            rule={selectedRule}
+            onNavigateToAlert={(alertId) => {
+              // In a real app, this would navigate to the alert screen
+              console.log('Navigate to alert:', alertId);
+              setAnnouncement(`Navigating to alert: ${alertId}`);
+            }}
+            onNavigateToRule={(ruleId) => {
+              // Find and select the rule
+              const rule = rules.find((r) => r.id === ruleId);
+              if (rule) {
+                setSelectedRule(rule);
+                setAnnouncement(`Navigated to rule: ${rule.name}`);
+              }
+            }}
           />
         );
 
@@ -230,6 +311,7 @@ export const RulesEngine = () => {
             onEditRule={handleEditRule}
             onDeleteRule={handleDeleteRule}
             onToggleRule={handleToggleRule}
+            onNavigateToAlert={handleNavigateToAlert}
           />
         );
     }
@@ -238,13 +320,13 @@ export const RulesEngine = () => {
   return (
     <div>
       <ScreenReaderAnnouncement message={announcement} />
-      
+
       <header style={pageHeaderStyle}>
         <h1 style={titleStyle}>Rules Engine</h1>
         <div style={{ display: 'flex', gap: theme.spacing[2] }}>
           {activeView !== 'list' && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => {
                 setActiveView('list');
                 setEditingRule(null);
@@ -256,11 +338,13 @@ export const RulesEngine = () => {
         </div>
       </header>
 
-      <div style={{
-        display: 'flex',
-        gap: theme.spacing[3],
-        marginBottom: theme.spacing[6],
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: theme.spacing[3],
+          marginBottom: theme.spacing[6],
+        }}
+      >
         <div
           style={tabStyle(activeView === 'list')}
           onClick={() => setActiveView('list')}
@@ -302,7 +386,8 @@ export const RulesEngine = () => {
               onClick={() => setActiveView('testing')}
               onMouseEnter={(e) => {
                 if (activeView !== 'testing') {
-                  e.currentTarget.style.backgroundColor = theme.colors.surfaceHover;
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.surfaceHover;
                 }
               }}
               onMouseLeave={(e) => {
@@ -332,11 +417,84 @@ export const RulesEngine = () => {
         >
           📊 Analytics
         </div>
+
+        <div
+          style={tabStyle(activeView === 'performance')}
+          onClick={() => setActiveView('performance')}
+          onMouseEnter={(e) => {
+            if (activeView !== 'performance') {
+              e.currentTarget.style.backgroundColor = theme.colors.surfaceHover;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeView !== 'performance') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          ⚡ Performance
+        </div>
+
+        {selectedRule && (
+          <>
+            <div
+              style={tabStyle(activeView === 'audit')}
+              onClick={() => setActiveView('audit')}
+              onMouseEnter={(e) => {
+                if (activeView !== 'audit') {
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.surfaceHover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeView !== 'audit') {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              📋 Audit History
+            </div>
+
+            <div
+              style={tabStyle(activeView === 'abtest')}
+              onClick={() => setActiveView('abtest')}
+              onMouseEnter={(e) => {
+                if (activeView !== 'abtest') {
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.surfaceHover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeView !== 'abtest') {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              🧪 A/B Tests
+            </div>
+
+            <div
+              style={tabStyle(activeView === 'linkage')}
+              onClick={() => setActiveView('linkage')}
+              onMouseEnter={(e) => {
+                if (activeView !== 'linkage') {
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.surfaceHover;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeView !== 'linkage') {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              🔗 Alert Links
+            </div>
+          </>
+        )}
       </div>
 
-      <main>
-        {renderView()}
-      </main>
+      <main>{renderView()}</main>
     </div>
   );
 };

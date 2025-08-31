@@ -6,7 +6,19 @@ import { dataStore } from '../data';
 
 interface RuleTestPanelProps {
   rule: Rule | null;
-  onTestResult: (passed: boolean, details: { conditionResults: Array<{ condition: string; passed: boolean; actualValue: string | number | boolean; expectedValue: string | number | boolean }>; actionsExecuted: string[]; executionTime: number }) => void;
+  onTestResult: (
+    passed: boolean,
+    details: {
+      conditionResults: Array<{
+        condition: string;
+        passed: boolean;
+        actualValue: string | number | boolean;
+        expectedValue: string | number | boolean;
+      }>;
+      actionsExecuted: string[];
+      executionTime: number;
+    }
+  ) => void;
 }
 
 interface TestResult {
@@ -23,31 +35,35 @@ interface TestResult {
   };
 }
 
-export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({ 
-  rule, 
-  onTestResult 
+export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
+  rule,
+  onTestResult,
 }) => {
   const theme = useTheme();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  
+
   const sampleEvents = useMemo(() => {
     return dataStore.getEvents().slice(0, 5); // Get 5 sample events
   }, []);
 
   const executeRuleTest = async () => {
     if (!rule || !selectedEvent) return;
-    
+
     setIsRunning(true);
     const startTime = Date.now();
-    
+
     try {
       // Simulate rule execution
-      const conditionResults = rule.conditions.map(condition => {
+      const conditionResults = rule.conditions.map((condition) => {
         const eventValue = getEventFieldValue(selectedEvent, condition.field);
-        const passed = evaluateCondition(eventValue, condition.operator, condition.value);
-        
+        const passed = evaluateCondition(
+          eventValue,
+          condition.operator,
+          condition.value
+        );
+
         return {
           condition: `${condition.field} ${condition.operator} ${condition.value}`,
           passed,
@@ -56,9 +72,12 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
         };
       });
 
-      const allConditionsPassed = conditionResults.every(result => result.passed);
-      const actionsExecuted = allConditionsPassed ? 
-        rule.actions.map(action => action.type) : [];
+      const allConditionsPassed = conditionResults.every(
+        (result) => result.passed
+      );
+      const actionsExecuted = allConditionsPassed
+        ? rule.actions.map((action) => action.type)
+        : [];
 
       const result: TestResult = {
         passed: allConditionsPassed,
@@ -86,36 +105,52 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
     }
   };
 
-  const getEventFieldValue = (event: Event, field: string): string | number | boolean => {
+  const getEventFieldValue = (
+    event: Event,
+    field: string
+  ): string | number | boolean => {
     switch (field) {
-      case 'severity': return event.severity;
-      case 'type': return event.type;
-      case 'title': return event.title;
-      case 'description': return event.description;
-      case 'status': return event.status;
-      case 'source': return event.source;
-      default: return null;
+      case 'severity':
+        return event.severity;
+      case 'type':
+        return event.type;
+      case 'title':
+        return event.title;
+      case 'description':
+        return event.description;
+      case 'source':
+        return event.source;
+      default:
+        return '';
     }
   };
 
-  const evaluateCondition = (actualValue: string | number | boolean, operator: string, expectedValue: string | number | boolean): boolean => {
+  const evaluateCondition = (
+    actualValue: string | number | boolean,
+    operator: string,
+    expectedValue: string | number | boolean
+  ): boolean => {
     switch (operator) {
       case 'equals':
         return actualValue === expectedValue;
       case 'contains':
-        return String(actualValue).toLowerCase().includes(String(expectedValue).toLowerCase());
+        return String(actualValue)
+          .toLowerCase()
+          .includes(String(expectedValue).toLowerCase());
       case 'greater_than':
         return Number(actualValue) > Number(expectedValue);
       case 'less_than':
         return Number(actualValue) < Number(expectedValue);
       case 'regex':
         try {
-          return new RegExp(expectedValue).test(String(actualValue));
+          return new RegExp(String(expectedValue)).test(String(actualValue));
         } catch {
           return false;
         }
       case 'in':
-        return Array.isArray(expectedValue) && expectedValue.includes(actualValue);
+        return (
+          Array.isArray(expectedValue) && expectedValue.includes(actualValue)
+        );
       default:
         return false;
     }
@@ -166,51 +201,67 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
       </CardHeader>
       <CardContent>
         <div style={{ marginBottom: theme.spacing[4] }}>
-          <h4 style={{ 
-            margin: `0 0 ${theme.spacing[3]} 0`, 
-            color: theme.colors.text 
-          }}>
+          <h4
+            style={{
+              margin: `0 0 ${theme.spacing[3]} 0`,
+              color: theme.colors.text,
+            }}
+          >
             Select Sample Event
           </h4>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: theme.spacing[2],
-          }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: theme.spacing[2],
+            }}
+          >
             {sampleEvents.map((event) => (
               <div
                 key={event.id}
-                style={selectedEvent?.id === event.id ? selectedEventStyle : eventCardStyle}
+                style={
+                  selectedEvent?.id === event.id
+                    ? selectedEventStyle
+                    : eventCardStyle
+                }
                 onClick={() => setSelectedEvent(event)}
                 onMouseEnter={(e) => {
                   if (selectedEvent?.id !== event.id) {
-                    e.currentTarget.style.backgroundColor = theme.colors.surfaceHover;
+                    e.currentTarget.style.backgroundColor =
+                      theme.colors.surfaceHover;
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (selectedEvent?.id !== event.id) {
-                    e.currentTarget.style.backgroundColor = theme.colors.surface;
+                    e.currentTarget.style.backgroundColor =
+                      theme.colors.surface;
                   }
                 }}
               >
-                <div style={{ 
-                  fontWeight: theme.typography.fontWeight.medium,
-                  marginBottom: theme.spacing[1],
-                  color: theme.colors.text,
-                }}>
+                <div
+                  style={{
+                    fontWeight: theme.typography.fontWeight.medium,
+                    marginBottom: theme.spacing[1],
+                    color: theme.colors.text,
+                  }}
+                >
                   {event.title}
                 </div>
-                <div style={{ 
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textMuted,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textMuted,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   {event.type} • {event.severity}
                 </div>
-                <div style={{ 
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textMuted,
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textMuted,
+                  }}
+                >
                   {event.description.substring(0, 80)}...
                 </div>
               </div>
@@ -218,7 +269,13 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: theme.spacing[3], alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: theme.spacing[3],
+            alignItems: 'center',
+          }}
+        >
           <Button
             variant="primary"
             onClick={executeRuleTest}
@@ -226,12 +283,14 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
           >
             {isRunning ? 'Running Test...' : 'Run Test'}
           </Button>
-          
+
           {selectedEvent && (
-            <div style={{ 
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textMuted,
-            }}>
+            <div
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textMuted,
+              }}
+            >
               Testing against: <strong>{selectedEvent.title}</strong>
             </div>
           )}
@@ -239,61 +298,83 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
 
         {testResult && (
           <div style={resultStyle}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              marginBottom: theme.spacing[3],
-            }}>
-              <span style={{
-                fontSize: theme.typography.fontSize.xl,
-              }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+                marginBottom: theme.spacing[3],
+              }}
+            >
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.xl,
+                }}
+              >
                 {testResult.passed ? '✅' : '❌'}
               </span>
-              <h4 style={{
-                margin: 0,
-                color: testResult.passed ? theme.colors.success : theme.colors.error,
-                fontSize: theme.typography.fontSize.lg,
-              }}>
+              <h4
+                style={{
+                  margin: 0,
+                  color: testResult.passed
+                    ? theme.colors.success
+                    : theme.colors.error,
+                  fontSize: theme.typography.fontSize.lg,
+                }}
+              >
                 {testResult.passed ? 'Rule Passed' : 'Rule Failed'}
               </h4>
-              <span style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textMuted,
-              }}>
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textMuted,
+                }}
+              >
                 ({testResult.details.executionTime}ms)
               </span>
             </div>
 
             <div style={{ marginBottom: theme.spacing[3] }}>
-              <h5 style={{ 
-                margin: `0 0 ${theme.spacing[2]} 0`, 
-                color: theme.colors.text 
-              }}>
+              <h5
+                style={{
+                  margin: `0 0 ${theme.spacing[2]} 0`,
+                  color: theme.colors.text,
+                }}
+              >
                 Condition Results:
               </h5>
               {testResult.details.conditionResults.map((result, index) => (
-                <div key={index} style={{
-                  padding: theme.spacing[2],
-                  marginBottom: theme.spacing[1],
-                  backgroundColor: result.passed ? 
-                    'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                  border: `1px solid ${result.passed ? theme.colors.success : theme.colors.error}`,
-                  borderRadius: theme.borderRadius.sm,
-                }}>
-                  <div style={{ 
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: result.passed ? theme.colors.success : theme.colors.error,
-                  }}>
+                <div
+                  key={index}
+                  style={{
+                    padding: theme.spacing[2],
+                    marginBottom: theme.spacing[1],
+                    backgroundColor: result.passed
+                      ? 'rgba(34, 197, 94, 0.1)'
+                      : 'rgba(239, 68, 68, 0.1)',
+                    border: `1px solid ${result.passed ? theme.colors.success : theme.colors.error}`,
+                    borderRadius: theme.borderRadius.sm,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: theme.typography.fontWeight.medium,
+                      color: result.passed
+                        ? theme.colors.success
+                        : theme.colors.error,
+                    }}
+                  >
                     {result.passed ? '✓' : '✗'} {result.condition}
                   </div>
-                  <div style={{ 
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textMuted,
-                    marginTop: theme.spacing[1],
-                  }}>
-                    Expected: {JSON.stringify(result.expectedValue)} | 
-                    Actual: {JSON.stringify(result.actualValue)}
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textMuted,
+                      marginTop: theme.spacing[1],
+                    }}
+                  >
+                    Expected: {JSON.stringify(result.expectedValue)} | Actual:{' '}
+                    {JSON.stringify(result.actualValue)}
                   </div>
                 </div>
               ))}
@@ -301,21 +382,32 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
 
             {testResult.details.actionsExecuted.length > 0 && (
               <div>
-                <h5 style={{ 
-                  margin: `0 0 ${theme.spacing[2]} 0`, 
-                  color: theme.colors.text 
-                }}>
+                <h5
+                  style={{
+                    margin: `0 0 ${theme.spacing[2]} 0`,
+                    color: theme.colors.text,
+                  }}
+                >
                   Actions Executed:
                 </h5>
-                <div style={{ display: 'flex', gap: theme.spacing[2], flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: theme.spacing[2],
+                    flexWrap: 'wrap',
+                  }}
+                >
                   {testResult.details.actionsExecuted.map((action, index) => (
-                    <span key={index} style={{
-                      padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                      backgroundColor: theme.colors.success,
-                      color: '#ffffff',
-                      borderRadius: theme.borderRadius.sm,
-                      fontSize: theme.typography.fontSize.sm,
-                    }}>
+                    <span
+                      key={index}
+                      style={{
+                        padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                        backgroundColor: theme.colors.success,
+                        color: '#ffffff',
+                        borderRadius: theme.borderRadius.sm,
+                        fontSize: theme.typography.fontSize.sm,
+                      }}
+                    >
                       {action}
                     </span>
                   ))}

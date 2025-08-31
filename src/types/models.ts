@@ -2,7 +2,12 @@
 
 export type AlertSeverity = 'critical' | 'warning' | 'info' | 'low';
 export type AlertStatus = 'active' | 'acknowledged' | 'resolved' | 'closed';
-export type EventType = 'system' | 'application' | 'security' | 'performance' | 'auth';
+export type EventType =
+  | 'system'
+  | 'application'
+  | 'security'
+  | 'performance'
+  | 'auth';
 export type UserRole = 'admin' | 'operator' | 'viewer';
 export type TeamRole = 'lead' | 'member' | 'oncall';
 
@@ -96,7 +101,7 @@ export interface Alert {
   resolvedAt?: string;
   resolvedBy?: string;
   escalatedAt?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   relatedEvents: string[]; // Array of event IDs
   triggeredByRule?: string; // Rule ID that created this alert
   createdAt: string;
@@ -112,8 +117,8 @@ export interface Event {
   title: string;
   summary?: string; // Brief event summary
   description: string;
-  payload?: Record<string, any>; // Raw event data
-  metadata: Record<string, any>;
+  payload?: Record<string, unknown>; // Raw event data
+  metadata: Record<string, unknown>;
   tags: string[];
   correlationId?: string;
   userId?: string;
@@ -146,15 +151,26 @@ export interface Rule {
 export interface RuleCondition {
   id: string;
   field: string; // Event field to check
-  operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'regex' | 'in';
-  value: any;
+  operator:
+    | 'equals'
+    | 'contains'
+    | 'greater_than'
+    | 'less_than'
+    | 'regex'
+    | 'in';
+  value: string | number | boolean;
   logicalOperator?: 'AND' | 'OR'; // How to combine with next condition
 }
 
 export interface RuleAction {
   id: string;
-  type: 'create_alert' | 'send_notification' | 'escalate' | 'tag_event' | 'webhook';
-  config: Record<string, any>; // Action-specific configuration
+  type:
+    | 'create_alert'
+    | 'send_notification'
+    | 'escalate'
+    | 'tag_event'
+    | 'webhook';
+  config: Record<string, unknown>; // Action-specific configuration
 }
 
 export interface RuleStatistics {
@@ -163,6 +179,9 @@ export interface RuleStatistics {
   lastTriggered?: string;
   averageExecutionTime: number; // milliseconds
   successRate: number; // percentage
+  evaluationCount: number; // Total times rule was evaluated
+  falsePosiveRate: number; // Percentage of false positive alerts
+  performanceImpactScore: number; // 1-10 scale of resource impact
 }
 
 // API Response Wrappers
@@ -187,8 +206,14 @@ export interface PaginatedResponse<T> {
 }
 
 // WebSocket Message Types
-export interface WebSocketMessage<T = any> {
-  type: 'alert_created' | 'alert_updated' | 'event_created' | 'rule_triggered' | 'user_action' | 'connection';
+export interface WebSocketMessage<T = unknown> {
+  type:
+    | 'alert_created'
+    | 'alert_updated'
+    | 'event_created'
+    | 'rule_triggered'
+    | 'user_action'
+    | 'connection';
   payload: T;
   timestamp: string;
   userId?: string;
@@ -295,6 +320,102 @@ export interface TimeSeriesData {
 export interface ApiError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   timestamp: string;
+}
+
+// Audit and Linkage Models
+export interface RuleAuditLog {
+  id: string;
+  ruleId: string;
+  action:
+    | 'created'
+    | 'modified'
+    | 'deleted'
+    | 'triggered'
+    | 'evaluated'
+    | 'ab_test_started'
+    | 'ab_test_completed';
+  userId: string;
+  timestamp: string;
+  changes?: RuleChangeLog;
+  metadata?: Record<string, unknown>;
+  impactedAlerts?: string[]; // Alert IDs affected by this change
+}
+
+export interface RuleChangeLog {
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+  reason?: string;
+}
+
+export interface AlertRuleLinkage {
+  alertId: string;
+  ruleId: string;
+  linkageType: 'triggered_by' | 'modified_by' | 'tested_against';
+  confidence: number; // 0-1 confidence score
+  context?: Record<string, unknown>;
+  timestamp: string;
+}
+
+export interface RulePerformanceMetrics {
+  ruleId: string;
+  evaluationCount: number;
+  avgExecutionTime: number; // milliseconds
+  memoryUsage: number; // bytes
+  cpuUsage: number; // percentage
+  alertsGenerated: number;
+  falsePositives: number;
+  truePositives: number;
+  lastCalculated: string;
+}
+
+export interface ABTestVariant {
+  id: string;
+  name: string;
+  ruleId: string;
+  configuration: Partial<Rule>;
+  isControl: boolean;
+  trafficPercentage: number; // 0-100
+  status: 'draft' | 'running' | 'completed' | 'paused';
+  createdAt: string;
+  startedAt?: string;
+  endedAt?: string;
+}
+
+export interface ABTestResult {
+  testId: string;
+  variantId: string;
+  metrics: {
+    alertsGenerated: number;
+    falsePositiveRate: number;
+    truePositiveRate: number;
+    avgExecutionTime: number;
+    userSatisfactionScore?: number;
+  };
+  statisticalSignificance: number; // p-value
+  confidenceInterval: {
+    lower: number;
+    upper: number;
+  };
+  calculatedAt: string;
+}
+
+export interface ABTest {
+  id: string;
+  name: string;
+  description: string;
+  baseRuleId: string;
+  variants: ABTestVariant[];
+  results: ABTestResult[];
+  status: 'draft' | 'running' | 'completed' | 'cancelled';
+  hypothesis: string;
+  successMetric: string;
+  minimumSampleSize: number;
+  currentSampleSize: number;
+  createdBy: string;
+  createdAt: string;
+  startedAt?: string;
+  endedAt?: string;
 }
